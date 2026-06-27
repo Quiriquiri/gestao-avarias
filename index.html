@@ -1,1 +1,449 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiriquiri — Gestão de Avarias</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f3;color:#1a1a1a;font-size:14px}
+:root{--accent:#1a56db;--accent-bg:#eff6ff;--accent-text:#1e40af;--danger:#dc2626;--danger-bg:#fef2f2;--danger-text:#991b1b;--warning:#d97706;--warning-bg:#fffbeb;--warning-text:#92400e;--success:#059669;--success-bg:#ecfdf5;--success-text:#065f46;--border:#e5e5e5;--surface:#fff;--surface-2:#f9f9f7;--muted:#6b7280;--radius:8px}
+.sidebar{position:fixed;top:0;left:0;width:220px;height:100vh;background:#fff;border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:10}
+.sidebar-logo{padding:1.25rem 1rem 1rem;border-bottom:1px solid var(--border)}
+.logo-icon{width:36px;height:36px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:8px}
+.logo-icon svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.sidebar-logo h2{font-size:15px;font-weight:600;color:#111}
+.sidebar-logo p{font-size:11px;color:var(--muted);margin-top:1px}
+.nav-section{padding:0.75rem 0.5rem}
+.nav-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:0.25rem 0.5rem;margin-bottom:0.25rem;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:9px;padding:0.5rem 0.75rem;font-size:13px;color:var(--muted);cursor:pointer;border-radius:6px;margin-bottom:2px;transition:all .12s;font-weight:500}
+.nav-item:hover{color:#111;background:#f3f4f6}
+.nav-item.active{color:var(--accent-text);background:var(--accent-bg)}
+.nav-item svg{width:16px;height:16px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.main{margin-left:220px;min-height:100vh;padding:1.75rem 2rem}
+.page{display:none}
+.page.active{display:block}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem}
+.topbar h1{font-size:19px;font-weight:600;color:#111}
+.topbar-right{display:flex;gap:8px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:0.45rem 0.9rem;font-size:13px;border-radius:6px;cursor:pointer;border:1px solid var(--border);background:#fff;color:#374151;font-weight:500;transition:all .12s}
+.btn:hover{background:#f9fafb;border-color:#d1d5db}
+.btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover{background:#1d4ed8;border-color:#1d4ed8}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.5rem}
+.metric{background:#fff;border-radius:var(--radius);padding:1rem 1.25rem;border:1px solid var(--border)}
+.metric-label{font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:500}
+.metric-value{font-size:28px;font-weight:700;line-height:1}
+.metric-sub{font-size:11px;color:var(--muted);margin-top:5px}
+.metric.danger .metric-value{color:var(--danger)}
+.metric.warning .metric-value{color:var(--warning)}
+.metric.success .metric-value{color:var(--success)}
+.metric.accent .metric-value{color:var(--accent)}
+.card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:1.25rem;margin-bottom:1rem}
+.card-title{font-size:13px;font-weight:600;margin-bottom:1rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:0.6rem 0.75rem;font-size:11px;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.04em}
+td{padding:0.65rem 0.75rem;border-bottom:1px solid #f3f4f6;color:#374151;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafafa}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border-radius:5px;font-weight:600}
+.badge-danger{background:var(--danger-bg);color:var(--danger-text)}
+.badge-warning{background:var(--warning-bg);color:var(--warning-text)}
+.badge-success{background:var(--success-bg);color:var(--success-text)}
+.badge-muted{background:#f3f4f6;color:#6b7280}
+.badge-accent{background:var(--accent-bg);color:var(--accent-text)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:12px;color:#374151;font-weight:600}
+.form-group input,.form-group select,.form-group textarea{padding:0.5rem 0.75rem;border:1px solid #d1d5db;border-radius:6px;font-size:13px;background:#fff;color:#111;font-family:inherit;outline:none;transition:border-color .12s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,86,219,.1)}
+.form-group textarea{resize:vertical;min-height:90px}
+.form-actions{display:flex;gap:8px;margin-top:1.25rem;justify-content:flex-end;padding-top:1rem;border-top:1px solid var(--border)}
+.stats-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.empty{text-align:center;padding:2.5rem;color:var(--muted);font-size:13px}
+select.filter-sel{padding:0.45rem 0.75rem;font-size:13px;border:1px solid var(--border);border-radius:6px;background:#fff;color:#374151;font-family:inherit;cursor:pointer}
+.inline-sel{font-size:12px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;background:#fff;color:#374151;font-family:inherit;cursor:pointer}
+</style>
+</head>
+<body>
 
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+    </div>
+    <h2>Quiriquiri</h2>
+    <p>Gestão de Avarias</p>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Principal</div>
+    <div class="nav-item active" onclick="showPage('dashboard')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item" onclick="showPage('avarias')">
+      <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Avarias
+    </div>
+    <div class="nav-item" onclick="showPage('nova')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Nova avaria
+    </div>
+    <div class="nav-item" onclick="showPage('frota')">
+      <svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+      Frota
+    </div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Outros</div>
+    <div class="nav-item" onclick="showPage('vistoria')">
+      <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+      Vistoria
+    </div>
+    <div class="nav-item" onclick="showPage('rastreio')">
+      <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      Rastreio
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="topbar">
+      <h1>Dashboard</h1>
+      <button class="btn btn-primary" onclick="showPage('nova')">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nova avaria
+      </button>
+    </div>
+    <div class="grid-4">
+      <div class="metric danger"><div class="metric-label">Avarias abertas</div><div class="metric-value" id="d-abertas">0</div><div class="metric-sub">aguardam reparação</div></div>
+      <div class="metric warning"><div class="metric-label">Em reparação</div><div class="metric-value" id="d-reparo">0</div><div class="metric-sub">na oficina</div></div>
+      <div class="metric success"><div class="metric-label">Resolvidas (total)</div><div class="metric-value" id="d-resolvidas">0</div><div class="metric-sub">concluídas</div></div>
+      <div class="metric accent"><div class="metric-label">Veículos na frota</div><div class="metric-value" id="d-frota">0</div><div class="metric-sub">registados</div></div>
+    </div>
+    <div class="stats-row">
+      <div class="card">
+        <div class="card-title">Últimas avarias</div>
+        <table><thead><tr><th>Veículo</th><th>Problema</th><th>Estado</th></tr></thead>
+        <tbody id="dash-table"></tbody></table>
+      </div>
+      <div class="card">
+        <div class="card-title">Disponibilidade da frota</div>
+        <table><thead><tr><th>Matrícula</th><th>Modelo</th><th>Estado</th></tr></thead>
+        <tbody id="frota-dash"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- AVARIAS -->
+  <div class="page" id="page-avarias">
+    <div class="topbar">
+      <h1>Avarias</h1>
+      <div class="topbar-right">
+        <select class="filter-sel" id="filtro-estado" onchange="renderAvarias()">
+          <option value="">Todos os estados</option>
+          <option value="Aberta">Aberta</option>
+          <option value="Em reparação">Em reparação</option>
+          <option value="Resolvida">Resolvida</option>
+        </select>
+        <button class="btn btn-primary" onclick="showPage('nova')">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nova
+        </button>
+      </div>
+    </div>
+    <div class="card" style="padding:0">
+      <table><thead><tr><th>#</th><th>Data</th><th>Veículo</th><th>Descrição</th><th>Prioridade</th><th>Estado</th><th>Alterar estado</th></tr></thead>
+      <tbody id="avarias-table"></tbody></table>
+    </div>
+  </div>
+
+  <!-- NOVA AVARIA -->
+  <div class="page" id="page-nova">
+    <div class="topbar"><h1>Nova avaria</h1></div>
+    <div class="card">
+      <div class="form-grid">
+        <div class="form-group"><label>Veículo</label>
+          <select id="f-veiculo"><option value="">Selecionar veículo...</option></select>
+        </div>
+        <div class="form-group"><label>Data da ocorrência</label><input type="date" id="f-data"></div>
+        <div class="form-group"><label>Tipo de avaria</label>
+          <select id="f-tipo">
+            <option value="">Selecionar...</option>
+            <option>Motor</option><option>Travões</option><option>Elétrico</option>
+            <option>Pneus</option><option>Carroçaria</option><option>Outro</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Prioridade</label>
+          <select id="f-prioridade"><option>Normal</option><option>Urgente</option><option>Crítica</option></select>
+        </div>
+        <div class="form-group" style="grid-column:1/-1"><label>Descrição da avaria</label>
+          <textarea id="f-descricao" placeholder="Descreve o problema detectado..."></textarea>
+        </div>
+        <div class="form-group"><label>Km actuais</label><input type="number" id="f-km" placeholder="ex: 125430"></div>
+        <div class="form-group"><label>Responsável</label><input type="text" id="f-resp" placeholder="Nome do responsável"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn" onclick="showPage('avarias')">Cancelar</button>
+        <button class="btn btn-primary" onclick="guardarAvaria()">
+          <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Guardar avaria
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FROTA -->
+  <div class="page" id="page-frota">
+    <div class="topbar">
+      <h1>Frota</h1>
+      <button class="btn btn-primary" onclick="abrirNovoVeiculo()">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Novo veículo
+      </button>
+    </div>
+    <div class="card" style="padding:0">
+      <table><thead><tr><th>Matrícula</th><th>Marca / Modelo</th><th>Tipo</th><th>Km</th><th>Estado</th><th>Avarias ativas</th></tr></thead>
+      <tbody id="frota-table"></tbody></table>
+    </div>
+    <div class="card" id="form-veiculo" style="display:none;margin-top:1rem">
+      <div class="card-title">Adicionar veículo</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Matrícula</label><input type="text" id="v-matricula" placeholder="AA-00-AA"></div>
+        <div class="form-group"><label>Marca</label><input type="text" id="v-marca" placeholder="ex: Mercedes"></div>
+        <div class="form-group"><label>Modelo</label><input type="text" id="v-modelo" placeholder="ex: Sprinter"></div>
+        <div class="form-group"><label>Tipo</label>
+          <select id="v-tipo"><option>Ligeiro</option><option>Pesado</option><option>Furgão</option><option>Motociclo</option></select>
+        </div>
+        <div class="form-group"><label>Km</label><input type="number" id="v-km" placeholder="0"></div>
+        <div class="form-group"><label>Estado</label>
+          <select id="v-estado"><option>Operacional</option><option>Em manutenção</option><option>Imobilizado</option></select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn" onclick="document.getElementById('form-veiculo').style.display='none'">Cancelar</button>
+        <button class="btn btn-primary" onclick="guardarVeiculo()">
+          <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Guardar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VISTORIA -->
+  <div class="page" id="page-vistoria">
+    <div class="topbar"><h1>Vistoria</h1></div>
+    <div class="card">
+      <div class="form-grid">
+        <div class="form-group"><label>Veículo</label><select id="vis-veiculo"></select></div>
+        <div class="form-group"><label>Data</label><input type="date" id="vis-data"></div>
+        <div class="form-group"><label>Inspector</label><input type="text" id="vis-insp" placeholder="Nome do inspector"></div>
+        <div class="form-group"><label>Km actuais</label><input type="number" id="vis-km" placeholder="Quilómetros actuais"></div>
+      </div>
+      <div style="margin-top:1.25rem">
+        <div class="card-title">Lista de verificação</div>
+        <table><thead><tr><th>Item</th><th>OK</th><th>Atenção</th><th>Falha</th><th>Observações</th></tr></thead>
+        <tbody id="checklist-body"></tbody></table>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="guardarVistoria()">
+          <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Guardar vistoria
+        </button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Vistorias anteriores</div>
+      <table><thead><tr><th>Data</th><th>Veículo</th><th>Inspector</th><th>Resultado</th></tr></thead>
+      <tbody id="vis-hist"></tbody></table>
+    </div>
+  </div>
+
+  <!-- RASTREIO -->
+  <div class="page" id="page-rastreio">
+    <div class="topbar"><h1>Rastreio</h1></div>
+    <div class="grid-4" style="grid-template-columns:repeat(3,1fr)">
+      <div class="metric success"><div class="metric-label">Em circulação</div><div class="metric-value" id="r-circ">0</div><div class="metric-sub">operacionais</div></div>
+      <div class="metric warning"><div class="metric-label">Em manutenção</div><div class="metric-value" id="r-man">0</div><div class="metric-sub">na oficina</div></div>
+      <div class="metric danger"><div class="metric-label">Imobilizados</div><div class="metric-value" id="r-imob">0</div><div class="metric-sub">parados</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Estado actual da frota</div>
+      <table><thead><tr><th>Matrícula</th><th>Marca / Modelo</th><th>Estado</th><th>Km</th><th>Última avaria</th></tr></thead>
+      <tbody id="rastreio-table"></tbody></table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let avarias = [
+  {id:1,veiculo:'00-AB-12',descricao:'Falha no motor — perde potência em marcha',tipo:'Motor',prioridade:'Urgente',estado:'Aberta',data:'2025-06-10',km:87400,resp:'João Silva'},
+  {id:2,veiculo:'11-CD-34',descricao:'Travões com barulho anormal',tipo:'Travões',prioridade:'Crítica',estado:'Em reparação',data:'2025-06-12',km:54300,resp:'Maria Santos'},
+  {id:3,veiculo:'22-EF-56',descricao:'Avaria no sistema elétrico — luzes',tipo:'Elétrico',prioridade:'Normal',estado:'Aberta',data:'2025-06-15',km:102000,resp:'Carlos Ferreira'},
+  {id:4,veiculo:'33-GH-78',descricao:'Pneu furado traseiro direito',tipo:'Pneus',prioridade:'Normal',estado:'Resolvida',data:'2025-06-08',km:67800,resp:'Ana Costa'},
+];
+let frota = [
+  {matricula:'00-AB-12',marca:'Mercedes',modelo:'Sprinter',tipo:'Furgão',km:87900,estado:'Em manutenção'},
+  {matricula:'11-CD-34',marca:'Renault',modelo:'Master',tipo:'Furgão',km:54300,estado:'Em manutenção'},
+  {matricula:'22-EF-56',marca:'Ford',modelo:'Transit',tipo:'Furgão',km:102000,estado:'Operacional'},
+  {matricula:'33-GH-78',marca:'Volkswagen',modelo:'Crafter',tipo:'Pesado',km:67800,estado:'Operacional'},
+];
+let vistorias = [];
+let nextId = 5;
+const checkItems = ['Óleo motor','Água radiador','Travões','Pneus','Luzes','Cinto de segurança','Limpadores','Documentação','Extintor','Triângulo de emergência'];
+
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>{if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes("'"+id+"'"))n.classList.add('active')});
+  if(id==='dashboard')renderDash();
+  if(id==='avarias')renderAvarias();
+  if(id==='frota')renderFrota();
+  if(id==='vistoria')renderVistoria();
+  if(id==='rastreio')renderRastreio();
+  if(id==='nova'){populateVeiculos('f-veiculo');document.getElementById('f-data').value=new Date().toISOString().slice(0,10);}
+}
+
+function estadoBadge(e){
+  if(e==='Aberta')return'<span class="badge badge-danger">Aberta</span>';
+  if(e==='Em reparação')return'<span class="badge badge-warning">Em reparação</span>';
+  if(e==='Resolvida')return'<span class="badge badge-success">Resolvida</span>';
+  return'<span class="badge badge-muted">'+e+'</span>';
+}
+function priorBadge(p){
+  if(p==='Crítica')return'<span class="badge badge-danger">'+p+'</span>';
+  if(p==='Urgente')return'<span class="badge badge-warning">'+p+'</span>';
+  return'<span class="badge badge-muted">'+p+'</span>';
+}
+function frotaBadge(e){
+  if(e==='Operacional')return'<span class="badge badge-success">'+e+'</span>';
+  if(e==='Em manutenção')return'<span class="badge badge-warning">'+e+'</span>';
+  return'<span class="badge badge-danger">'+e+'</span>';
+}
+
+function renderDash(){
+  const tb=document.getElementById('dash-table');
+  const ultimas=[...avarias].reverse().slice(0,5);
+  tb.innerHTML=ultimas.map(a=>`<tr><td>${a.veiculo}</td><td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.descricao}</td><td>${estadoBadge(a.estado)}</td></tr>`).join('');
+  document.getElementById('frota-dash').innerHTML=frota.slice(0,6).map(v=>`<tr><td>${v.matricula}</td><td>${v.marca} ${v.modelo}</td><td>${frotaBadge(v.estado)}</td></tr>`).join('');
+  document.getElementById('d-abertas').textContent=avarias.filter(a=>a.estado==='Aberta').length;
+  document.getElementById('d-reparo').textContent=avarias.filter(a=>a.estado==='Em reparação').length;
+  document.getElementById('d-resolvidas').textContent=avarias.filter(a=>a.estado==='Resolvida').length;
+  document.getElementById('d-frota').textContent=frota.length;
+}
+
+function renderAvarias(){
+  const filtro=document.getElementById('filtro-estado').value;
+  const lista=filtro?avarias.filter(a=>a.estado===filtro):avarias;
+  const tb=document.getElementById('avarias-table');
+  if(!lista.length){tb.innerHTML='<tr><td colspan="7" class="empty">Sem avarias registadas</td></tr>';return;}
+  tb.innerHTML=[...lista].reverse().map(a=>`<tr>
+    <td style="color:var(--muted);font-size:12px">#${a.id}</td>
+    <td>${a.data}</td><td><strong>${a.veiculo}</strong></td>
+    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.descricao}</td>
+    <td>${priorBadge(a.prioridade)}</td><td>${estadoBadge(a.estado)}</td>
+    <td><select class="inline-sel" onchange="mudarEstado(${a.id},this.value)">
+      <option ${a.estado==='Aberta'?'selected':''}>Aberta</option>
+      <option ${a.estado==='Em reparação'?'selected':''}>Em reparação</option>
+      <option ${a.estado==='Resolvida'?'selected':''}>Resolvida</option>
+    </select></td>
+  </tr>`).join('');
+}
+
+function mudarEstado(id,estado){
+  const a=avarias.find(x=>x.id===id);if(a){a.estado=estado;renderDash();}
+}
+
+function guardarAvaria(){
+  const v=document.getElementById('f-veiculo').value;
+  const desc=document.getElementById('f-descricao').value.trim();
+  if(!v||!desc){alert('Preenche o veículo e a descrição.');return;}
+  avarias.push({id:nextId++,veiculo:v,descricao:desc,
+    tipo:document.getElementById('f-tipo').value||'Outro',
+    prioridade:document.getElementById('f-prioridade').value,
+    estado:'Aberta',data:document.getElementById('f-data').value,
+    km:+document.getElementById('f-km').value||0,
+    resp:document.getElementById('f-resp').value});
+  ['f-veiculo','f-descricao','f-km','f-resp'].forEach(id=>document.getElementById(id).value='');
+  showPage('avarias');
+}
+
+function renderFrota(){
+  const tb=document.getElementById('frota-table');
+  if(!frota.length){tb.innerHTML='<tr><td colspan="6" class="empty">Sem veículos registados</td></tr>';return;}
+  tb.innerHTML=frota.map(v=>{
+    const av=avarias.filter(a=>a.veiculo===v.matricula&&a.estado!=='Resolvida').length;
+    return`<tr><td><strong>${v.matricula}</strong></td><td>${v.marca} ${v.modelo}</td><td>${v.tipo}</td>
+    <td>${v.km.toLocaleString('pt-PT')} km</td><td>${frotaBadge(v.estado)}</td>
+    <td>${av>0?'<span class="badge badge-danger">'+av+' ativa'+(av>1?'s':'')+'</span>':'<span class="badge badge-success">Nenhuma</span>'}</td></tr>`;
+  }).join('');
+}
+
+function abrirNovoVeiculo(){document.getElementById('form-veiculo').style.display='block';}
+
+function guardarVeiculo(){
+  const m=document.getElementById('v-matricula').value.trim();
+  if(!m){alert('Matrícula obrigatória.');return;}
+  frota.push({matricula:m,marca:document.getElementById('v-marca').value,modelo:document.getElementById('v-modelo').value,
+    tipo:document.getElementById('v-tipo').value,km:+document.getElementById('v-km').value||0,
+    estado:document.getElementById('v-estado').value});
+  document.getElementById('form-veiculo').style.display='none';
+  renderFrota();
+}
+
+function populateVeiculos(id){
+  const sel=document.getElementById(id);
+  const cur=sel.value;
+  sel.innerHTML='<option value="">Selecionar veículo...</option>'+frota.map(v=>`<option value="${v.matricula}">${v.matricula} — ${v.marca} ${v.modelo}</option>`).join('');
+  if(cur)sel.value=cur;
+}
+
+function renderVistoria(){
+  populateVeiculos('vis-veiculo');
+  document.getElementById('vis-data').value=new Date().toISOString().slice(0,10);
+  const tb=document.getElementById('checklist-body');
+  tb.innerHTML=checkItems.map((item,i)=>`<tr>
+    <td>${item}</td>
+    <td style="text-align:center"><input type="radio" name="chk${i}" value="OK"></td>
+    <td style="text-align:center"><input type="radio" name="chk${i}" value="Atenção"></td>
+    <td style="text-align:center"><input type="radio" name="chk${i}" value="Falha"></td>
+    <td><input type="text" id="obs${i}" style="width:100%;padding:4px 8px;border:1px solid #e5e7eb;border-radius:5px;font-size:12px"></td>
+  </tr>`).join('');
+  const hTb=document.getElementById('vis-hist');
+  if(!vistorias.length){hTb.innerHTML='<tr><td colspan="4" class="empty">Sem vistorias registadas</td></tr>';return;}
+  hTb.innerHTML=vistorias.map(v=>`<tr><td>${v.data}</td><td>${v.veiculo||'—'}</td><td>${v.inspector||'—'}</td>
+    <td>${v.falhas>0?'<span class="badge badge-danger">'+v.falhas+' falha(s)</span>':'<span class="badge badge-success">Sem falhas</span>'}</td></tr>`).join('');
+}
+
+function guardarVistoria(){
+  let falhas=0;
+  checkItems.forEach((_,i)=>{const r=document.querySelector('input[name="chk'+i+'"]:checked');if(r&&r.value==='Falha')falhas++;});
+  vistorias.unshift({data:document.getElementById('vis-data').value,veiculo:document.getElementById('vis-veiculo').value,
+    inspector:document.getElementById('vis-insp').value,falhas});
+  alert('Vistoria guardada com sucesso!');
+  renderVistoria();
+}
+
+function renderRastreio(){
+  document.getElementById('r-circ').textContent=frota.filter(v=>v.estado==='Operacional').length;
+  document.getElementById('r-man').textContent=frota.filter(v=>v.estado==='Em manutenção').length;
+  document.getElementById('r-imob').textContent=frota.filter(v=>v.estado==='Imobilizado').length;
+  const tb=document.getElementById('rastreio-table');
+  tb.innerHTML=frota.map(v=>{
+    const ult=[...avarias].filter(a=>a.veiculo===v.matricula).sort((a,b)=>b.data.localeCompare(a.data))[0];
+    return`<tr><td><strong>${v.matricula}</strong></td><td>${v.marca} ${v.modelo}</td>
+    <td>${frotaBadge(v.estado)}</td><td>${v.km.toLocaleString('pt-PT')} km</td>
+    <td style="color:var(--muted)">${ult?ult.data+' — '+ult.tipo:'Sem registo'}</td></tr>`;
+  }).join('');
+}
+
+renderDash();
+</script>
+</body>
+</html>
